@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="LTK Games">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>STARFALL 3D</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --gold:#ffd34d; --cyan:#5ee6ff; --pink:#ff4d7a; --violet:#c77dff; --ink:#05061a; }
+  html,body { margin:0; height:100%; background:var(--ink); overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+    font-family:'Exo 2', system-ui, sans-serif; color:#fff; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .ui { position:fixed; inset:0; pointer-events:none; }
+  .hud-tl { position:absolute; top:16px; left:20px; }
+  .score { font-family:Orbitron; font-weight:900; font-size:34px; letter-spacing:1px;
+    text-shadow:0 0 12px rgba(94,230,255,.6), 0 2px 0 rgba(0,0,0,.5); }
+  .lvl { font-weight:600; font-size:14px; opacity:.8; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .combo { font-family:Orbitron; font-weight:700; font-size:18px; color:var(--gold); margin-top:6px;
+    text-shadow:0 0 10px rgba(255,211,77,.8); transition:transform .1s; }
+  .hud-tr { position:absolute; top:18px; right:20px; text-align:right; }
+  .lives { display:flex; gap:6px; justify-content:flex-end; }
+  .lives svg { width:24px; height:24px; filter:drop-shadow(0 0 6px rgba(94,230,255,.7)); }
+  .bar { margin-top:8px; display:flex; align-items:center; gap:8px; justify-content:flex-end;
+    font-family:Orbitron; font-size:10px; font-weight:700; letter-spacing:1px; }
+  .bar i { display:block; width:90px; height:6px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
+  .bar b { display:block; height:100%; border-radius:3px; }
+  .banner { position:absolute; top:34%; width:100%; text-align:center; opacity:0; transition:opacity .4s; }
+  .banner h2 { font-family:Orbitron; font-weight:900; font-size:clamp(34px,7vw,64px); margin:0; letter-spacing:4px;
+    text-shadow:0 0 24px rgba(199,125,255,.9); }
+  .banner p { margin:4px 0 0; font-weight:800; font-size:20px; color:var(--violet); letter-spacing:3px; text-transform:uppercase; }
+  .bubble { position:absolute; transform:translate(-50%,-100%); background:#fff; color:#1b1f5c; font-weight:800; font-size:15px;
+    padding:7px 14px; border-radius:14px; white-space:nowrap; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transition:opacity .2s; }
+  .bubble:after { content:''; position:absolute; left:50%; bottom:-7px; margin-left:-7px; border:7px solid transparent; border-bottom:0; border-top-color:#fff; }
+  .boss { position:absolute; transform:translate(-50%,-100%); text-align:center; display:none; }
+  .boss span { font-family:Orbitron; font-weight:900; font-size:14px; letter-spacing:2px; color:#ff9a6b; text-shadow:0 0 10px rgba(255,80,40,.9); }
+  .boss i { display:block; width:140px; height:8px; margin:5px auto 0; border-radius:4px; background:rgba(255,255,255,.15); overflow:hidden; }
+  .boss b { display:block; height:100%; background:linear-gradient(90deg,#ff3d2e,#ffb03a); }
+  .pop { position:absolute; transform:translate(-50%,-50%); font-family:Orbitron; font-weight:900; font-size:17px; white-space:nowrap;
+    text-shadow:0 0 10px currentColor, 0 2px 0 rgba(0,0,0,.6); animation:pop 1s ease-out forwards; }
+  @keyframes pop { 0%{opacity:0; margin-top:0; scale:.6} 15%{opacity:1; scale:1.15} 100%{opacity:0; margin-top:-60px; scale:1} }
+  .flash { display:none; position:fixed; inset:0; background:radial-gradient(ellipse at center, transparent 30%, rgba(255,40,30,.65)); opacity:0; pointer-events:none; }
+
+  .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:6vh 20px 7vh; box-sizing:border-box; text-align:center; pointer-events:auto; }
+  .screen.hidden { display:none; }
+  .title { font-family:Orbitron; font-weight:900; font-size:clamp(38px,9vw,84px); line-height:.95; margin:0; letter-spacing:3px;
+    background:linear-gradient(180deg,#fff6c8 0%,#ffd34d 45%,#ff7a3d 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 18px rgba(255,170,60,.55)) drop-shadow(0 4px 0 rgba(0,0,0,.4)); }
+  .logo { width:clamp(72px,12vw,110px); height:auto; display:block; margin:0 auto 10px; filter:drop-shadow(0 0 20px rgba(199,125,255,.6)); border-radius:24%; }
+  .tag { font-size:clamp(15px,2.4vw,20px); color:#cfd3ff; margin-top:10px; font-weight:600; }
+  .info { font-size:15px; line-height:1.8; color:rgba(255,255,255,.8); }
+  .info kbd { font-family:Orbitron; font-size:11px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+    border-radius:5px; padding:2px 6px; }
+  .btn { font-family:Orbitron; font-weight:900; font-size:22px; letter-spacing:3px; color:var(--ink); background:linear-gradient(180deg,#8ff3ff,#3ac6ef);
+    border:0; border-radius:40px; padding:16px 46px; cursor:pointer; box-shadow:0 0 30px rgba(94,230,255,.6), 0 6px 0 #1a7fa0;
+    animation:pulse 1.6s ease-in-out infinite; }
+  .btn:active { transform:translateY(4px); box-shadow:0 0 30px rgba(94,230,255,.6), 0 2px 0 #1a7fa0; }
+  @keyframes pulse { 50% { box-shadow:0 0 50px rgba(94,230,255,.9), 0 6px 0 #1a7fa0; } }
+  .rec { font-family:Orbitron; font-weight:700; color:var(--gold); margin-top:14px; font-size:15px; letter-spacing:1px; }
+  .big { font-family:Orbitron; font-weight:900; font-size:clamp(44px,8vw,72px); color:#ff7a3d; margin:0; letter-spacing:4px;
+    text-shadow:0 0 30px rgba(255,90,40,.8); }
+  .final { font-family:Orbitron; font-weight:900; font-size:48px; margin:6px 0; text-shadow:0 0 18px rgba(94,230,255,.7); }
+  .new { font-family:Orbitron; font-weight:900; color:var(--gold); font-size:22px; animation:blink .5s steps(2) infinite; }
+  @keyframes blink { 50% { color:#ff7a3d; } }
+  .credit { margin-top:18px; font-family:Orbitron; font-size:11px; letter-spacing:3px; color:rgba(255,255,255,.55); }
+  .credit b { color:#5ee6ff; font-weight:900; text-shadow:0 0 10px rgba(94,230,255,.6); }
+  .shopbtn { margin-top:14px; font-family:Orbitron; font-weight:700; font-size:13px; letter-spacing:2px; color:#1b1200;
+    background:linear-gradient(180deg,#ffe48a,#f5b53a); border:0; border-radius:30px; padding:10px 22px; cursor:pointer;
+    box-shadow:0 0 22px rgba(255,200,60,.5), 0 4px 0 #a8701a; }
+  .owned { margin-top:14px; font-family:Orbitron; font-weight:900; font-size:13px; letter-spacing:2px; color:var(--gold); text-shadow:0 0 12px rgba(255,211,77,.7); }
+  .modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(5,6,26,.75); backdrop-filter:blur(4px); z-index:10; pointer-events:auto; }
+  .modal.hidden { display:none; }
+  .card { width:min(420px,92vw); background:linear-gradient(180deg,#1d2160,#0d0f30); border:1px solid rgba(255,211,77,.45); border-radius:22px;
+    padding:26px 24px; text-align:center; box-shadow:0 0 50px rgba(255,190,60,.25); }
+  .card h3 { font-family:Orbitron; font-weight:900; font-size:26px; margin:0; color:var(--gold); letter-spacing:2px; }
+  .card .price { font-family:Orbitron; font-weight:900; font-size:34px; margin:6px 0 14px; }
+  .card ul { list-style:none; padding:0; margin:0 0 18px; text-align:left; font-size:16px; line-height:2; }
+  .card li:before { content:'★ '; color:var(--gold); }
+  .paypal { display:block; font-weight:800; font-size:17px; color:#fff; background:#0070ba; border-radius:30px; padding:13px; text-decoration:none; box-shadow:0 4px 0 #004f84; }
+  .redeem { display:flex; gap:8px; margin-top:16px; }
+  .redeem input { flex:1; min-width:0; font-family:Orbitron; font-size:13px; letter-spacing:1px; padding:11px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08); color:#fff; outline:none; text-transform:uppercase; }
+  .redeem button { font-family:Orbitron; font-weight:700; font-size:12px; border:0; border-radius:12px; padding:0 14px; background:var(--cyan); color:var(--ink); cursor:pointer; }
+  .msg { min-height:20px; margin-top:10px; font-size:14px; font-weight:600; }
+  .note { font-size:12px; opacity:.6; margin-top:12px; line-height:1.5; }
+  .close { margin-top:14px; background:none; border:0; color:rgba(255,255,255,.7); font-family:'Exo 2'; font-size:15px; cursor:pointer; text-decoration:underline; }
+  .dim { background:rgba(5,6,26,.55); backdrop-filter:blur(3px); justify-content:center; gap:14px; }
+  .mute { position:fixed; right:16px; bottom:14px; width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08); color:#fff; font-size:18px; cursor:pointer; pointer-events:auto; z-index:5; }
+  .err { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:30px; text-align:center; font-size:18px; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div class="ui" id="hud" style="display:none">
+  <div class="hud-tl">
+    <div class="score" id="score">0</div>
+    <div class="lvl" id="lvl"></div>
+    <div class="combo" id="combo"></div>
+  </div>
+  <div class="hud-tr">
+    <div class="lives" id="lives"></div>
+    <div id="bars"></div>
+  </div>
+  <div class="banner" id="banner"><h2 id="bannerT"></h2><p id="bannerS"></p></div>
+</div>
+<div class="ui" id="world">
+  <div class="bubble" id="bubble"></div>
+  <div class="boss" id="boss"><span>KING BOULDER</span><i><b id="bossHp"></b></i></div>
+</div>
+<div class="flash" id="flash"></div>
+
+<div class="screen" id="menu">
+  <div>
+    <img src="logo.svg" alt="" class="logo"><h1 class="title">STAR<br>FALL</h1>
+    <div class="tag">One ship, one pilot, way too many rocks.</div>
+  </div>
+  <div>
+    <div class="info">
+      <kbd>←→↑↓</kbd> / <kbd>WASD</kbd> move &nbsp;·&nbsp; <kbd>SPACE</kbd> shoot &nbsp;·&nbsp; <kbd>P</kbd> pause<br>
+      Mouse: click to shoot · Touch: drag to fly (auto-fire)<br>
+      It never ends: every level is faster. Every 3 levels, King Boulder shows up.
+    </div>
+    <div style="height:22px"></div>
+    <button class="btn" id="play">PLAY</button>
+    <div class="rec" id="menuRec"></div>
+    <div id="packSlot"></div>
+    <div class="credit">PRODUCED BY <b>LTK GAMES</b></div>
+  </div>
+</div>
+
+<div class="screen dim hidden" id="over">
+  <h2 class="big">GAME OVER</h2>
+  <div class="tag" id="deathLine"></div>
+  <div class="final" id="finalScore"></div>
+  <div class="lvl" id="finalLvl"></div>
+  <div id="recLine"></div>
+  <div style="height:10px"></div>
+  <button class="btn" id="again">REMATCH</button>
+  <div class="credit">PRODUCED BY <b>LTK GAMES</b></div>
+</div>
+
+<div class="screen dim hidden" id="pause">
+  <h2 class="big" style="color:#fff;text-shadow:0 0 24px rgba(94,230,255,.8)">PAUSED</h2>
+  <div class="tag">The pilot grabs a quick coffee.</div>
+  <button class="btn" id="resume">RESUME</button>
+</div>
+
+<div class="modal hidden" id="shop">
+  <div class="card">
+    <h3>STAR PACK</h3>
+    <div class="price">US$1.99</div>
+    <ul>
+      <li>Golden ship</li>
+      <li>Start every run with 4 lives</li>
+      <li>Start with a shield</li>
+      <li>Double points from stars</li>
+    </ul>
+    <a class="paypal" id="paypalLink" target="_blank" rel="noopener">Buy with PayPal</a>
+    <div class="note">After paying, you'll get your unlock code by email or PayPal message. Enter it below.</div>
+    <div class="redeem"><input id="codeIn" placeholder="UNLOCK CODE" maxlength="32"><button id="redeemBtn">REDEEM</button></div>
+    <div class="msg" id="codeMsg"></div>
+    <button class="close" id="shopClose">Close</button>
+  </div>
+</div>
+
+<button class="mute" id="mute" title="Sound (M)">🔊</button>
+
+<script>
+"use strict";
+// ======================================================================
+//  Lluvia Estelar 3D: WebGL2 puro, sin librerías
+// ======================================================================
+const $ = id => document.getElementById(id);
+const cv = $('gl');
+const gl = cv.getContext('webgl2', { antialias: true });
+if (!gl) {
+  document.body.innerHTML = '<div class="err">Your browser does not support WebGL2. Try an up-to-date Chrome, Edge or Firefox.</div>';
+  throw new Error('no webgl2');
+}
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ---------------- Vectores y matrices ----------------
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+
+const M4 = {
+  mul(a, b) {
+    const r = new Float32Array(16);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k];
+      r[i * 4 + j] = s;
+    }
+    return r;
+  },
+  persp(fov, asp, n, f) {
+    const t = 1 / Math.tan(fov / 2), r = new Float32Array(16);
+    r[0] = t / asp; r[5] = t; r[10] = (f + n) / (n - f); r[11] = -1; r[14] = 2 * f * n / (n - f);
+    return r;
+  },
+  lookAt(e, c, u) {
+    const z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x);
+    return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]);
+  },
+  // traslación * rotZ * rotY * rotX * escala
+  trs(x, y, z, rx = 0, ry = 0, rz = 0, s = 1) {
+    const cx = Math.cos(rx), sx = Math.sin(rx), cy = Math.cos(ry), sy = Math.sin(ry), cz = Math.cos(rz), sz = Math.sin(rz);
+    const m00 = cz * cy, m01 = cz * sy * sx - sz * cx, m02 = cz * sy * cx + sz * sx;
+    const m10 = sz * cy, m11 = sz * sy * sx + cz * cx, m12 = sz * sy * cx - cz * sx;
+    const m20 = -sy, m21 = cy * sx, m22 = cy * cx;
+    return new Float32Array([m00 * s, m10 * s, m20 * s, 0, m01 * s, m11 * s, m21 * s, 0, m02 * s, m12 * s, m22 * s, 0, x, y, z, 1]);
+  },
+};
+
+// ---------------- Shaders ----------------
+function compile(vs, fs) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const cache = {};
+  return { p, u: n => (n in cache ? cache[n] : (cache[n] = gl.getUniformLocation(p, n))) };
+}
+
+const meshProg = compile(`#version 300 es
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec4 aCol;
+uniform mat4 uVP, uM;
+out vec3 vN; out vec4 vC; out vec3 vW;
+void main(){ vec4 w = uM * vec4(aPos,1.0); vW = w.xyz; vN = mat3(uM) * aNor; vC = aCol; gl_Position = uVP * w; }`,
+`#version 300 es
+precision highp float;
+in vec3 vN; in vec4 vC; in vec3 vW;
+uniform vec3 uCam, uTint; uniform float uFlash, uFog, uEmis;
+out vec4 o;
+void main(){
+  vec3 n = normalize(vN);
+  vec3 V = normalize(uCam - vW);
+  vec3 L = normalize(vec3(0.55, 1.0, 0.45));
+  vec3 base = vC.rgb * uTint;
+  float dif = max(dot(n, L), 0.0);
+  vec3 H = normalize(L + V);
+  float spec = pow(max(dot(n, H), 0.0), 40.0) * 0.55;
+  float rim = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+  vec3 col = base * (0.16 + 0.9 * dif * vec3(1.0, 0.95, 0.88));
+  col += base * max(dot(n, normalize(vec3(-0.7, -0.2, 0.4))), 0.0) * vec3(0.45, 0.28, 0.85) * 0.5;
+  col += vec3(0.3, 0.55, 1.0) * rim * 0.55 + spec;
+  col = mix(col, base * 1.7 + 0.15, vC.a * uEmis);
+  col = mix(col, vec3(1.0), uFlash);
+  float fog = clamp((length(vW - uCam) - 28.0) / 45.0, 0.0, 1.0) * uFog;
+  col = mix(col, vec3(0.03, 0.035, 0.11), fog);
+  col = col / (1.0 + col * 0.25);
+  o = vec4(pow(col, vec3(0.95)), 1.0);
+}`);
+
+const spriteProg = compile(`#version 300 es
+layout(location=0) in vec3 aPos; layout(location=1) in float aSize; layout(location=2) in vec4 aCol;
+uniform mat4 uVP; uniform float uScale;
+out vec4 vC;
+void main(){ vec4 p = uVP * vec4(aPos,1.0); gl_Position = p; gl_PointSize = clamp(aSize * uScale / p.w, 1.0, 512.0); vC = aCol; }`,
+`#version 300 es
+precision mediump float;
+in vec4 vC; out vec4 o;
+void main(){ vec2 d = gl_PointCoord - 0.5; float r = length(d) * 2.0;
+  float a = exp(-r * r * 3.5) * (1.0 - smoothstep(0.85, 1.0, r)) + exp(-r * r * 40.0) * 0.6;
+  o = vec4(vC.rgb * a * vC.a, 0.0); }`);
+
+const bgProg = compile(`#version 300 es
+void main(){ vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`,
+`#version 300 es
+precision highp float;
+uniform vec2 uRes; uniform float uT;
+out vec4 o;
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+1.0), f.x), f.y); }
+float fbm(vec2 p){ float s = 0.0, a = 0.5; for(int i=0;i<5;i++){ s += a*n(p); p *= 2.03; a *= 0.5; } return s; }
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec2 p = uv * vec2(uRes.x / uRes.y, 1.0);
+  vec3 col = mix(vec3(0.015, 0.015, 0.05), vec3(0.06, 0.05, 0.17), uv.y);
+  float f1 = fbm(p * 2.2 + vec2(0.0, uT * 0.015));
+  float f2 = fbm(p * 1.6 - vec2(uT * 0.01, 3.0));
+  col += vec3(0.42, 0.12, 0.55) * pow(f1, 3.2) * 1.4;
+  col += vec3(0.05, 0.22, 0.5) * pow(f2, 3.0) * 1.3;
+  vec2 g = floor(gl_FragCoord.xy / 2.5);
+  float s = h(g);
+  if (s > 0.9965) col += vec3(0.75, 0.8, 1.0) * (0.55 + 0.45 * sin(uT * 2.0 + s * 300.0));
+  o = vec4(col, 1.0);
+}`);
+
+const lineProg = compile(`#version 300 es
+layout(location=0) in vec3 aPos;
+uniform mat4 uVP; uniform float uOff;
+out vec3 vW;
+void main(){ vec3 p = aPos; p.z += uOff; vW = p; gl_Position = uVP * vec4(p,1.0); }`,
+`#version 300 es
+precision mediump float;
+in vec3 vW; uniform vec3 uCam; uniform float uK; out vec4 o;
+void main(){ float d = length(vW - uCam);
+  float a = (1.0 - clamp((d - 8.0 * uK) / (55.0 * uK), 0.0, 1.0)) / (uK * uK) * (1.0 - smoothstep(8.0, 45.0, abs(vW.x)) * 0.7);
+  o = vec4(vec3(0.5, 0.25, 1.0) * 0.32 * a, 0.0); }`);
+
+// ---------------- Construcción de geometría ----------------
+class Geo {
+  constructor() { this.p = []; this.n = []; this.c = []; }
+  tri(a, b, c, col, em, ctr) {
+    let n = norm(cross(sub(b, a), sub(c, a)));
+    if (ctr) { const m = [(a[0]+b[0]+c[0])/3, (a[1]+b[1]+c[1])/3, (a[2]+b[2]+c[2])/3]; if (dot(n, sub(m, ctr)) < 0) n = [-n[0], -n[1], -n[2]]; }
+    for (const q of [a, b, c]) { this.p.push(q[0], q[1], q[2]); this.n.push(n[0], n[1], n[2]); this.c.push(col[0], col[1], col[2], em); }
+  }
+  quad(a, b, c, d, col, em, ctr) { this.tri(a, b, c, col, em, ctr); this.tri(a, c, d, col, em, ctr); }
+}
+function lathe(g, prof, segs, col, em, T = p => p) {
+  for (let i = 0; i < prof.length - 1; i++) {
+    const [r0, y0] = prof[i], [r1, y1] = prof[i + 1], ctr = T([0, (y0 + y1) / 2, 0]);
+    for (let s = 0; s < segs; s++) {
+      const a0 = s / segs * Math.PI * 2, a1 = (s + 1) / segs * Math.PI * 2;
+      const P = (r, y, a) => T([Math.cos(a) * r, y, Math.sin(a) * r]);
+      g.quad(P(r0, y0, a0), P(r0, y0, a1), P(r1, y1, a1), P(r1, y1, a0), col, em, ctr);
+    }
+  }
+}
+function prism(g, poly, depth, col, em, T = p => p) {
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+  const ctr = T([cx, cy, 0]), h = depth / 2, n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const a = poly[i], b = poly[(i + 1) % n];
+    g.tri(T([cx, cy, h]), T([a[0], a[1], h]), T([b[0], b[1], h]), col, em, ctr);
+    g.tri(T([cx, cy, -h]), T([b[0], b[1], -h]), T([a[0], a[1], -h]), col, em, ctr);
+    g.quad(T([a[0], a[1], h]), T([b[0], b[1], h]), T([b[0], b[1], -h]), T([a[0], a[1], -h]), col, em, ctr);
+  }
+}
+function sphereProf(rx, ry, n = 10) { const out = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI; out.push([Math.sin(a) * rx, Math.cos(a) * ry]); } return out; }
+function icoTris(subdiv) {
+  const t = (1 + Math.sqrt(5)) / 2;
+  const v = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].map(norm);
+  const f = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  let tris = f.map(([a, b, c]) => [v[a], v[b], v[c]]);
+  for (let s = 0; s < subdiv; s++) {
+    const nt = [];
+    for (const [a, b, c] of tris) { const ab = norm(mid(a, b)), bc = norm(mid(b, c)), ca = norm(mid(c, a)); nt.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]); }
+    tris = nt;
+  }
+  return tris;
+}
+function torus(g, R, r, segs, sides, col, em, T = p => p) {
+  for (let i = 0; i < segs; i++) for (let j = 0; j < sides; j++) {
+    const P = (a, b) => { a = a / segs * Math.PI * 2; b = b / sides * Math.PI * 2; return T([(R + r * Math.cos(b)) * Math.cos(a), r * Math.sin(b), (R + r * Math.cos(b)) * Math.sin(a)]); };
+    const ctr = T([R * Math.cos((i + .5) / segs * Math.PI * 2), 0, R * Math.sin((i + .5) / segs * Math.PI * 2)]);
+    g.quad(P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), col, em, ctr);
+  }
+}
+
+function upload(g) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const buf = (data, loc, size) => {
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+  };
+  buf(g.p, 0, 3); buf(g.n, 1, 3); buf(g.c, 2, 4);
+  gl.bindVertexArray(null);
+  return { vao, count: g.p.length / 3 };
+}
+
+// ---- Modelos ----
+const toFwd = p => [p[0], p[2], -p[1]];          // eje +Y del torno → hacia adelante (-Z)
+function buildShip(gold) {
+  // Caza delta simple: casco grafito + bordes celestes que brillan (o dorado con el Star Pack)
+  const g = new Geo();
+  const hull = gold ? [0.85, 0.62, 0.18] : [0.22, 0.25, 0.32], hull2 = gold ? [1.0, 0.8, 0.32] : [0.34, 0.37, 0.46], cyan = gold ? [1.0, 0.95, 0.7] : [0.25, 0.9, 1.0], dark = [0.1, 0.1, 0.14];
+  const flat = p => [p[0], p[2], -p[1]];                       // polígono visto desde arriba → plano XZ
+  prism(g, [[0, 1.8], [0.3, 0.7], [1.55, -0.55], [1.5, -0.85], [0.45, -0.65], [0.3, -0.95], [-0.3, -0.95], [-0.45, -0.65], [-1.5, -0.85], [-1.55, -0.55], [-0.3, 0.7]], 0.18, hull, 0, flat);
+  prism(g, [[0, 1.35], [0.3, 0.1], [0.28, -0.95], [-0.28, -0.95], [-0.3, 0.1]], 0.42, hull2, 0, p => { const q = flat(p); return [q[0], q[1] + 0.12, q[2]]; });
+  lathe(g, sphereProf(0.17, 0.42, 8), 12, cyan, 0.7, p => { const q = toFwd(p); return [q[0], q[1] + 0.3, q[2] - 0.45]; });
+  for (const s of [-1, 1]) {
+    prism(g, [[1.35, -0.5], [1.58, -0.56], [1.53, -0.86], [1.32, -0.8]], 0.24, cyan, 1, p => { const q = flat(p); return [s * q[0], q[1], q[2]]; });
+    prism(g, [[0.3, 0.65], [0.36, 0.55], [1.2, -0.42], [1.12, -0.4]], 0.2, cyan, 1, p => { const q = flat(p); return [s * q[0], q[1] + 0.01, q[2]]; });
+  }
+  lathe(g, [[0, -0.85], [0.24, -0.85], [0.27, -1.15], [0, -1.15]], 14, dark, 0, toFwd);
+  lathe(g, [[0.2, -1.14], [0, -1.17]], 14, cyan, 1, toFwd);
+  return upload(g);
+}
+function noise3(v, s) {
+  return Math.sin(v[0] * 2.1 + s) * Math.sin(v[1] * 2.6 + s * 1.7) * Math.sin(v[2] * 2.3 + s * 0.6) * 0.6
+       + Math.sin(v[0] * 5.3 + s * 2.3) * Math.sin(v[1] * 4.7 - s) * Math.sin(v[2] * 5.9 + s * 1.1) * 0.25;
+}
+function buildRock(seed, hot, tint = [0.55, 0.42, 0.33]) {
+  const g = new Geo();
+  const disp = v => { const k = 0.82 + noise3(v, seed) * 0.32; return [v[0] * k, v[1] * k, v[2] * k]; };
+  for (const [a, b, c] of icoTris(2)) {
+    const m = norm([(a[0]+b[0]+c[0]), (a[1]+b[1]+c[1]), (a[2]+b[2]+c[2])]);
+    const nz = noise3(m, seed);
+    const shade = 0.72 + 0.3 * (Math.sin(m[0] * 40 + m[1] * 70 + seed) * 0.5 + 0.5);
+    let col = [tint[0] * shade, tint[1] * shade, tint[2] * shade], em = 0;
+    if (hot && nz < -0.28) { col = [1.0, 0.38, 0.08]; em = 1; }
+    g.tri(disp(a), disp(b), disp(c), col, em, [0, 0, 0]);
+  }
+  return upload(g);
+}
+function buildStar() {
+  const g = new Geo(), poly = [];
+  for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.45 : 1, a = i / 10 * Math.PI * 2 + Math.PI / 2; poly.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  prism(g, poly, 0.35, [1.0, 0.8, 0.25], 0.55);
+  return upload(g);
+}
+function buildPower() {
+  const g = new Geo();
+  torus(g, 0.75, 0.09, 28, 8, [1, 1, 1], 0.6, p => [p[0], p[2], p[1]]);
+  for (const [a, b, c] of icoTris(1)) { const s = 0.38; g.tri(a.map(x => x * s), b.map(x => x * s), c.map(x => x * s), [1, 1, 1], 0.85, [0, 0, 0]); }
+  return upload(g);
+}
+function buildBullet() {
+  const g = new Geo();
+  lathe(g, [[0, 0.45], [0.07, 0.3], [0.07, -0.3], [0, -0.45]], 8, [1.0, 0.95, 0.6], 1, toFwd);
+  return upload(g);
+}
+function buildBossFace() {
+  const g = new Geo();
+  for (const s of [-1, 1]) {
+    lathe(g, sphereProf(0.42, 0.42, 8), 12, [1, 1, 1], 0.2, p => [p[0] + s * 0.95, p[1] + 0.45, p[2] + 2.55]);
+    lathe(g, sphereProf(0.2, 0.2, 6), 10, [1.0, 0.1, 0.05], 1, p => [p[0] + s * 0.95, p[1] + 0.45, p[2] + 2.92]);
+    prism(g, [[-0.65, -0.1], [0.65, 0.18], [0.6, 0.38], [-0.7, 0.1]], 0.25, [0.12, 0.06, 0.04], 0, p => [s * (p[0]) + s * 0.95, p[1] * 1 + 1.05 + (s > 0 ? 0 : 0), p[2] + 2.6].map((v, i) => i === 1 ? v - s * 0 : v));
+    prism(g, [[0.05, 0], [1.1, 0.25], [1.25, -0.2], [0.6, -0.35], [0.05, -0.2]], 0.3, [0.12, 0.06, 0.04], 0, p => [s * p[0], p[1] - 0.35, p[2] + 2.75]);
+  }
+  return upload(g);
+}
+function buildPlanet() {
+  const g = new Geo(), n = 18;
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * Math.PI, a1 = (i + 1) / n * Math.PI, band = 0.5 + 0.5 * Math.sin(i * 1.7);
+    const col = [0.32 + band * 0.25, 0.22 + band * 0.1, 0.62 + band * 0.2];
+    lathe(g, [[Math.sin(a0), Math.cos(a0)], [Math.sin(a1), Math.cos(a1)]], 32, col, 0);
+  }
+  torus(g, 1.75, 0.22, 48, 4, [0.85, 0.6, 1.0], 0.25, p => [p[0], p[1] * 0.12, p[2]]);
+  return upload(g);
+}
+function buildGrid() {
+  const pts = [];
+  for (let x = -60; x <= 60; x += 2.5) pts.push(x, -3.2, -110, x, -3.2, 25);
+  for (let z = -110; z <= 25; z += 2.5) pts.push(-60, -3.2, z, 60, -3.2, z);
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+  return { vao, count: pts.length / 3 };
+}
+
+const MODELS = {
+  ship: buildShip(false),
+  goldShip: buildShip(true),
+  rocks: [0, 1, 2, 3, 4, 5].map(s => buildRock(s * 1.37 + 0.5, false)),
+  hotRocks: [0, 1, 2].map(s => buildRock(s * 2.1 + 9, true, [0.4, 0.3, 0.27])),
+  bossRock: buildRock(4.2, true, [0.45, 0.25, 0.2]),
+  bossFace: buildBossFace(),
+  star: buildStar(),
+  power: buildPower(),
+  bullet: buildBullet(),
+  grid: buildGrid(),
+};
+const bgVao = gl.createVertexArray();
+
+// Sprites dinámicos (brillos, partículas, polvo)
+const MAX_SPR = 6000;
+const sprData = new Float32Array(MAX_SPR * 8);
+let sprCount = 0;
+const sprVao = gl.createVertexArray(), sprBuf = gl.createBuffer();
+gl.bindVertexArray(sprVao); gl.bindBuffer(gl.ARRAY_BUFFER, sprBuf);
+gl.bufferData(gl.ARRAY_BUFFER, sprData.byteLength, gl.DYNAMIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
+gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 32, 12);
+gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 32, 16);
+gl.bindVertexArray(null);
+function spr(x, y, z, size, r, g, b, a) {
+  if (sprCount >= MAX_SPR) return;
+  const o = sprCount++ * 8;
+  sprData[o] = x; sprData[o + 1] = y; sprData[o + 2] = z; sprData[o + 3] = size;
+  sprData[o + 4] = r; sprData[o + 5] = g; sprData[o + 6] = b; sprData[o + 7] = a;
+}
+
+// ---------------- Cámara ----------------
+const FOV = 50 * Math.PI / 180;
+let camK = 1, VP, camEye = [0, 10, 14], camR, camU, camF, cssW = 1, cssH = 1, pxScale = 1;
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cssW = innerWidth; cssH = innerHeight;
+  cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+  pxScale = cv.height / (2 * Math.tan(FOV / 2));
+}
+addEventListener('resize', resize); resize();
+function setupCamera(shakeAmt) {
+  const asp = cssW / cssH, need = Math.max(1, 1.3 / asp), k = Math.min(1.9, need); camK = k;
+  FX = 6.8 * k / need;    // en pantallas angostas el campo se achica en vez de alejar tanto la cámara
+  const target = [0, 0, -3];
+  camEye = [rand(-1, 1) * shakeAmt, 10 * k + rand(-1, 1) * shakeAmt, -3 + 17 * k];
+  if (state === 'menu') { camEye[0] += Math.sin(T * 0.3) * 2; }
+  const view = M4.lookAt(camEye, target, [0, 1, 0]);
+  VP = M4.mul(M4.persp(FOV, asp, 0.1, 400), view);
+  camF = norm(sub(target, camEye)); camR = norm(cross(camF, [0, 1, 0])); camU = cross(camR, camF);
+}
+function toScreen(x, y, z) {
+  const m = VP, cx = m[0] * x + m[4] * y + m[8] * z + m[12], cy = m[1] * x + m[5] * y + m[9] * z + m[13], w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  return { x: (cx / w + 1) / 2 * cssW, y: (1 - cy / w) / 2 * cssH };
+}
+function screenToField(sx, sy) {
+  const nx = sx / cssW * 2 - 1, ny = 1 - sy / cssH * 2, th = Math.tan(FOV / 2), asp = cssW / cssH;
+  const d = norm([camF[0] + camR[0] * nx * th * asp + camU[0] * ny * th, camF[1] + camR[1] * nx * th * asp + camU[1] * ny * th, camF[2] + camR[2] * nx * th * asp + camU[2] * ny * th]);
+  const t = -camEye[1] / d[1];
+  return { x: camEye[0] + d[0] * t, z: camEye[2] + d[2] * t };
+}
+
+// ---------------- Audio ----------------
+let ac = null, muted = false;
+const VOL = 0.35;   // efectos bajitos
+function audio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+}
+function tone(f0, f1, dur, type = 'square', vol = 0.15, delay = 0) {
+  if (muted || !ac) return;
+  const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t0 + dur);
+  g.gain.setValueAtTime(vol * VOL, t0); g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noise(dur, vol = 0.3) {
+  if (muted || !ac) return;
+  const n = Math.floor(ac.sampleRate * dur), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = 1800;
+  s.buffer = b; g.gain.value = vol * VOL; s.connect(f).connect(g).connect(ac.destination); s.start();
+}
+const SFX = {
+  shoot: () => tone(1000, 420, 0.07, 'square', 0.035),
+  star: c => tone(660 * (1 + c * 0.12), 1320 * (1 + c * 0.12), 0.1, 'square', 0.06),
+  boom: () => { noise(0.35, 0.3); tone(150, 35, 0.3, 'triangle', 0.2); },
+  hit: () => { noise(0.6, 0.45); tone(200, 40, 0.5, 'sawtooth', 0.12); },
+  power: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.08, 'square', 0.05, i * 0.06)),
+  start: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.1, 'square', 0.05, i * 0.07)),
+  level: () => [392, 523, 659, 784].forEach((f, i) => tone(f, f, 0.12, 'square', 0.05, i * 0.1)),
+  boss: () => [110, 98, 82].forEach((f, i) => tone(f, f * 0.9, 0.35, 'sawtooth', 0.12, i * 0.3)),
+  shield: () => tone(1200, 300, 0.25, 'square', 0.06),
+  sad: () => [392, 370, 349, 262].forEach((f, i) => tone(f, f * 0.98, 0.25, 'triangle', 0.12, i * 0.25)),
+};
+const MEL = [0,4,7,12,7,4,0,4, 5,9,12,17,12,9,5,9, 7,11,14,19,14,11,7,11, 5,9,12,17,16,12,9,7];
+let step = 0;
+setInterval(() => {
+  if (muted || !ac || state !== 'play' || paused) return;
+  const f = 220 * Math.pow(2, MEL[step % 32] / 12);
+  tone(f, f, 0.12, 'square', 0.018);
+  if (step % 4 === 0) { const b = 110 * Math.pow(2, [0, 5, 7, 5][Math.floor(step / 8) % 4] / 12); tone(b, b, 0.25, 'triangle', 0.07); }
+  if (step % 2 === 1) noise(0.03, 0.04);
+  step++;
+}, Math.max(95, 140));
+
+// ---------------- Personalidad ----------------
+const ZONES = ['Moon Suburbs', 'Spicy Belt', 'Grumpy Nebula', 'Comet Avenue', 'The Angry Void', 'Boulder Country', 'Galactic Abyss', 'Edge of the Map'];
+const ROMAN = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
+const LINES = {
+  start: ["Here we go!", 'Engines at full power.', 'No rock is touching me today.'],
+  star: ['Shiny!', "That one's mine.", 'Another one for the collection.', 'Nice star!'],
+  combo: ['COMBO!', "I'm unstoppable!", "Can't stop me now!"],
+  close: ['Whoa, close one!', 'That scratched the paint!', 'Watch out, rock!'],
+  hit: ['OUCH!', 'That hurt!', 'Rude rock!', 'My brand new paint!'],
+  power: ['Oh yeah!', 'Full power!', 'What a nice gift!'],
+  shieldBreak: ['The shield saved me!', 'Phew, that was close!'],
+  boss: ['What is THAT giant rock?', 'Uh... he looks mad.', 'King Boulder! You again?!'],
+  bossDown: ['Bye bye, King Boulder!', "And don't come back!"],
+  level: ['New zone!', 'Things are heating up.', 'Faster rocks, more stars.', 'Does this ever end?'],
+  kill: ['Boom!', 'Dust!', 'Got it!'],
+};
+const DEATH = ['The ship is taking a cosmic nap.', 'The rocks win this round...', 'The pilot demands a rematch. And a coffee.',
+  '"It was lag," said the pilot.', 'Houston, we have a problem.'];
+let bubble = null, sayCD = 0;
+function say(key, force) {
+  if (!force && sayCD > 0) return;
+  bubble = { text: pick(LINES[key]), life: 1.8 };
+  $('bubble').textContent = bubble.text;
+  sayCD = force ? 1.2 : 2.5;
+}
+
+// ---------------- Estado ----------------
+let FX = 6.8;                 // medio ancho del campo
+const SPAWN_Z = -38, KILL_Z = 14;
+let state = 'menu', paused = false, T = 0, time = 0;
+let P = { x: 0, z: 3, vx: 0, bank: 0, visible: true };
+let meteors = [], stars = [], bullets = [], powers = [], parts = [], debris = [];
+let score = 0, best = 0, lives = 3, level = 1, banner = 0, spawnT = 0, starT = 0, powT = 0, shootT = 0;
+let inv = 0, shield = 0, triple = 0, combo = 0, comboT = 0, overT = 0, shake = 0, flashA = 0, bossAlive = false, gridOff = 0;
+try { best = +localStorage.getItem('starfall_best') || 0; } catch (e) {}
+const saveBest = () => { try { localStorage.setItem('starfall_best', best); } catch (e) {} };
+const dust = Array.from({ length: 260 }, () => ({ x: rand(-30, 30), y: rand(-3, 8), z: rand(-110, 20), s: rand(0.05, 0.16) }));
+const PCOL = { shield: [0.42, 0.66, 1.0], triple: [0.78, 0.49, 1.0], heart: [1.0, 0.36, 0.48] };
+const PCSS = { shield: '#6aa8ff', triple: '#c77dff', heart: '#ff5d7a' };
+$('menuRec').textContent = best ? 'BEST: ' + best.toLocaleString('en') : '';
+
+const zoneName = () => ZONES[(level - 1) % ZONES.length] + ROMAN[Math.min(9, Math.floor((level - 1) / ZONES.length))];
+// Dificultad infinita: crece con el tiempo, sin techo (la velocidad crece más suave pasado cierto punto)
+const diff = () => 1 + time / 32;
+const speedMul = () => { const d = diff(); return d < 3 ? d : 3 + Math.sqrt(d - 3) * 0.8; };
+
+function start() {
+  audio();
+  for (const id of ['menu', 'over', 'pause']) $(id).classList.add('hidden');
+  $('hud').style.display = '';
+  P = { x: 0, z: 3, vx: 0, bank: 0, visible: true };
+  meteors = []; stars = []; bullets = []; powers = []; parts = []; debris = [];
+  score = 0; lives = 3; level = 1; time = 0; banner = 2.5; spawnT = 1; starT = 1; powT = 8; shootT = 0;
+  inv = 1.5; shield = 0; triple = 0; combo = 0; comboT = 0; bossAlive = false;
+  if (hasPack) { lives = 4; shield = 8; }
+  state = 'play'; paused = false;
+  SFX.start(); sayCD = 0; say('start', true);
+  showBanner();
+}
+function showBanner() { $('bannerT').textContent = 'LEVEL ' + level; $('bannerS').textContent = zoneName(); }
+function setPaused(v) { paused = v; $('pause').classList.toggle('hidden', !v); }
+
+
+// ---------------- Microtransacción: STAR PACK ----------------
+// Cambiá esto por tu usuario de PayPal (paypal.me/USUARIO)
+const PAYPAL_ME = 'https://www.paypal.com/paypalme/LTKGames/1.99USD';
+const PACK_HASH = 1376560413;            // hash del código de desbloqueo
+const codeHash = c => { let x = 2166136261; for (const ch of c.toUpperCase().replace(/\s+/g, '')) x = Math.imul(x ^ ch.charCodeAt(0), 16777619) >>> 0; return x; };
+let hasPack = false;
+try { hasPack = localStorage.getItem('starfall_pack') === '1'; } catch (e) {}
+function refreshPackUI() {
+  $('packSlot').innerHTML = hasPack ? '<div class="owned">★ STAR PACK ACTIVE ★</div>' : '<button class="shopbtn" id="openShop">★ STAR PACK · US$1.99</button>';
+  const b = $('openShop'); if (b) b.onclick = () => { $('shop').classList.remove('hidden'); $('codeMsg').textContent = ''; };
+}
+$('paypalLink').href = PAYPAL_ME;
+$('shopClose').onclick = () => $('shop').classList.add('hidden');
+$('redeemBtn').onclick = () => {
+  const ok = codeHash($('codeIn').value) === PACK_HASH;
+  if (ok) {
+    hasPack = true; try { localStorage.setItem('starfall_pack', '1'); } catch (e) {}
+    $('codeMsg').style.color = '#7dffa8'; $('codeMsg').textContent = 'Star Pack unlocked! Enjoy, pilot.';
+    audio(); SFX.power(); refreshPackUI();
+    setTimeout(() => $('shop').classList.add('hidden'), 1400);
+  } else { $('codeMsg').style.color = '#ff7a7a'; $('codeMsg').textContent = 'That code is not valid.'; }
+};
+$('codeIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('redeemBtn').click(); });
+refreshPackUI();
+
+// ---------------- Input ----------------
+const keys = {};
+let pointer = null;   // {sx, sy} mientras hay mouse/dedo apretado
+addEventListener('keydown', e => {
+  keys[e.code] = true; audio();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'KeyM') toggleMute();
+  if (state === 'play' && (e.code === 'Escape' || e.code === 'KeyP')) setPaused(!paused);
+  else if (state !== 'play' && (e.code === 'Enter' || e.code === 'Space') && overT <= 0 && $('shop').classList.contains('hidden')) start();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+cv.addEventListener('pointerdown', e => { audio(); if (state === 'play' && !paused) pointer = { sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse' }; });
+addEventListener('pointermove', e => { if (pointer) { pointer.sx = e.clientX; pointer.sy = e.clientY; } });
+addEventListener('pointerup', () => { pointer = null; });
+addEventListener('pointercancel', () => { pointer = null; });
+addEventListener('blur', () => { if (state === 'play') setPaused(true); });
+$('play').onclick = () => start();
+$('again').onclick = () => { if (overT <= 0) start(); };
+$('resume').onclick = () => setPaused(false);
+function toggleMute() { muted = !muted; $('mute').textContent = muted ? '🔇' : '🔊'; }
+$('mute').onclick = e => { e.stopPropagation(); audio(); toggleMute(); };
+
+// ---------------- Lógica ----------------
+function makeMeteor(x, z, r, vx, vz, opt = {}) {
+  const boss = !!opt.boss;
+  const hot = !boss && (opt.hot || (level >= 4 && Math.random() < 0.25));
+  const hp = boss ? 16 + level * 4 : (r > 1.3 ? 3 : r > 0.95 ? 2 : 1);
+  return {
+    x, z, r, vx, vz, hp, maxhp: hp, boss, hot, zig: opt.zig || 0, zigPh: rand(0, 6),
+    model: boss ? MODELS.bossRock : hot ? pick(MODELS.hotRocks) : pick(MODELS.rocks),
+    rx: rand(0, 6), ry: rand(0, 6), srx: rand(-2, 2) * (boss ? 0.2 : 1), sry: rand(-2, 2) * (boss ? 0.2 : 1),
+    y: boss ? 0.6 : rand(-0.3, 0.3), flash: 0, bossShot: 2.5, dead: false, kids: null,
+  };
+}
+function spawnBoss() {
+  bossAlive = true;
+  meteors.push(makeMeteor(0, SPAWN_Z - 4, 2.6, 0, 6, { boss: true }));
+  SFX.boss(); setTimeout(() => say('boss', true), 700);
+}
+
+function update(dt) {
+  T += dt;
+  overT = Math.max(0, overT - dt);
+  if (bubble) { bubble.life -= dt; if (bubble.life <= 0) bubble = null; }
+  sayCD -= dt;
+  const sm = state === 'play' ? speedMul() : 0.6;
+  gridOff = (gridOff + dt * 9 * sm) % 2.5;
+  for (const d of dust) { d.z += dt * 30 * sm; if (d.z > 22) { d.z = -110; d.x = rand(-30, 30); } }
+  if (state === 'play') game(dt);
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; const k = Math.pow(p.drag, dt * 60); p.vx *= k; p.vy *= k; p.vz *= k; p.life -= dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const d of debris) { d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt; d.rx += d.sr * dt; d.ry += d.sr * dt; d.life -= dt; }
+  debris = debris.filter(d => d.life > 0);
+  shake = Math.max(0, shake - dt * 2.5); flashA = Math.max(0, flashA - dt * 2.5);
+}
+
+function game(dt) {
+  time += dt;
+  const newLevel = 1 + Math.floor(time / 20);
+  if (newLevel > level) {
+    level = newLevel; banner = 2.5; showBanner(); SFX.level();
+    if (level % 3 === 0 && !bossAlive) spawnBoss(); else say('level', true);
+  }
+  banner = Math.max(0, banner - dt);
+  const d = diff(), sm = speedMul();
+  score += dt * 6 * d;
+  inv = Math.max(0, inv - dt); shield = Math.max(0, shield - dt); triple = Math.max(0, triple - dt);
+  comboT -= dt; if (comboT <= 0) combo = 0;
+
+  // Movimiento
+  let mx = 0, mz = 0;
+  if (keys.ArrowLeft || keys.KeyA) mx--; if (keys.ArrowRight || keys.KeyD) mx++;
+  if (keys.ArrowUp || keys.KeyW) mz--; if (keys.ArrowDown || keys.KeyS) mz++;
+  const sp = 13, px0 = P.x;
+  if (pointer && pointer.touch) {   // solo el dedo mueve la nave; el clic del mouse solo dispara
+    const f = screenToField(pointer.sx, pointer.sy - 70);
+    const dx = f.x - P.x, dz = f.z - P.z, dd = Math.hypot(dx, dz);
+    if (dd > 0.05) { const m = Math.min(sp * 1.4 * dt, dd); P.x += dx / dd * m; P.z += dz / dd * m; }
+  } else {
+    const l = Math.hypot(mx, mz) || 1;
+    P.x += mx / l * sp * dt; P.z += mz / l * sp * dt;
+  }
+  P.x = clamp(P.x, -FX, FX); P.z = clamp(P.z, -6, 6.5);
+  P.vx = (P.x - px0) / Math.max(dt, 1e-4);
+  P.bank = lerp(P.bank, clamp(-P.vx * 0.05, -0.7, 0.7), Math.min(1, dt * 10));
+
+  // Disparo
+  shootT -= dt;
+  if ((keys.Space || keys.KeyJ || pointer) && shootT <= 0) {
+    shootT = 0.15;
+    bullets.push({ x: P.x, z: P.z - 1.6, vx: 0, vz: -42 });
+    if (triple > 0) bullets.push({ x: P.x - 0.4, z: P.z - 1.2, vx: -7, vz: -40 }, { x: P.x + 0.4, z: P.z - 1.2, vx: 7, vz: -40 });
+    SFX.shoot();
+  }
+  // Fuego de los motores
+  parts.push({ x: P.x + rand(-0.06, 0.06), y: rand(-0.05, 0.05), z: P.z + 1.25, vx: rand(-0.4, 0.4), vy: rand(-0.2, 0.2), vz: rand(8, 12),
+    life: 0.3, max: 0.3, size: 0.7, c: triple > 0 ? [0.8, 0.45, 1.0] : [0.3, 0.8, 1.0], drag: 0.97 });
+
+  // Spawns (cada vez más seguido, sin fin)
+  spawnT -= dt;
+  if (spawnT <= 0) {
+    spawnT = Math.max(0.11, 0.9 / Math.pow(d, 0.85)) * (bossAlive ? 1.7 : 1);
+    const r = rand(0.6, 1.55);
+    const zig = level >= 3 && Math.random() < 0.2 ? rand(2, 3.5) : 0;
+    meteors.push(makeMeteor(rand(-FX, FX), SPAWN_Z, r, rand(-1.2, 1.2), rand(8, 12.5) * sm, { zig }));
+    if (level >= 6 && Math.random() < 0.15 + level * 0.01) {      // enjambres rápidos
+      const x0 = rand(-FX + 1, FX - 1);
+      for (let i = 0; i < 3; i++) meteors.push(makeMeteor(x0 + (i - 1) * 1.1, SPAWN_Z - i * 1.5, 0.55, 0, 15 * sm, { hot: true }));
+    }
+  }
+  starT -= dt;
+  if (starT <= 0) { starT = rand(0.9, 2.0); stars.push({ x: rand(-FX + 0.5, FX - 0.5), z: SPAWN_Z, ph: rand(0, 6) }); }
+  powT -= dt;
+  if (powT <= 0) {
+    powT = rand(8, 13);
+    let k = pick(['shield', 'triple', 'heart']);
+    if (k === 'heart' && lives >= 5) k = 'triple';
+    powers.push({ x: rand(-FX + 1, FX - 1), z: SPAWN_Z, k, ph: rand(0, 6) });
+  }
+
+  // Balas
+  for (const b of bullets) {
+    b.x += b.vx * dt; b.z += b.vz * dt;
+    for (const m of meteors) {
+      if (!m.dead && Math.hypot(b.x - m.x, b.z - m.z) < m.r + 0.2) {
+        b.dead = true; m.hp--; m.flash = 0.07;
+        sparks(b.x, 0, b.z + 0.3, [1, 0.8, 0.5], 5, 6);
+        if (m.hp <= 0) killMeteor(m);
+        break;
+      }
+    }
+  }
+  bullets = bullets.filter(b => b.z > SPAWN_Z - 6 && !b.dead);
+
+  // Meteoritos
+  const born = []; let close = false;
+  for (const m of meteors) {
+    m.z += m.vz * dt; m.x += m.vx * dt;
+    if (m.zig) m.x += Math.cos(T * 2.5 + m.zigPh) * m.zig * dt * 2;
+    m.rx += m.srx * dt; m.ry += m.sry * dt; m.flash = Math.max(0, m.flash - dt);
+    if (m.boss) {
+      if (m.z >= -20) { m.vz = 0; m.z = -20; }
+      m.x = Math.sin(T * 0.8) * FX * 0.62;
+      m.bossShot -= dt;
+      if (m.bossShot <= 0 && m.vz === 0) {
+        m.bossShot = Math.max(0.55, 1.6 - level * 0.05);
+        for (const dx of [-1, 0, 1]) born.push(makeMeteor(m.x + dx * 1.2, m.z + 2.5, 0.55, dx * 1.6 + (P.x - m.x) * 0.22, 13 * Math.min(sm, 2), { hot: true }));
+      }
+    }
+    const dd = Math.hypot(m.x - P.x, m.z - P.z);
+    if (!m.dead && inv <= 0 && dd < m.r * 0.85 + 0.6) hitPlayer(m);
+    else if (!m.dead && dd < m.r + 2.4 && m.z < P.z) close = true;
+    if (m.kids) { born.push(...m.kids); m.kids = null; }
+  }
+  if (close && Math.random() < 0.03) say('close');
+  meteors = meteors.filter(m => m.z < KILL_Z && Math.abs(m.x) < FX + 6 && !m.dead).concat(born);
+
+  // Estrellas
+  for (const s of stars) {
+    s.z += 9 * Math.min(sm, 2.2) * dt;
+    if (Math.hypot(s.x - P.x, s.z - P.z) < 1.5) {
+      s.dead = true;
+      combo = Math.min(combo + 1, 5); comboT = 2.5;
+      const pts = 50 * combo * Math.ceil(level / 3) * (hasPack ? 2 : 1);
+      score += pts;
+      popup(s.x, 0.8, s.z, '+' + pts + (combo > 1 ? ' ×' + combo : ''), '#ffd34d');
+      sparks(s.x, 0, s.z, [1, 0.8, 0.3], 22, 9); SFX.star(combo);
+      say(combo >= 3 ? 'combo' : 'star');
+    }
+  }
+  stars = stars.filter(s => s.z < KILL_Z && !s.dead);
+
+  // Power-ups
+  for (const p of powers) {
+    p.z += 7 * dt;
+    if (Math.hypot(p.x - P.x, p.z - P.z) < 1.6) { p.dead = true; applyPower(p); }
+  }
+  powers = powers.filter(p => p.z < KILL_Z && !p.dead);
+}
+
+function killMeteor(m) {
+  m.dead = true;
+  const pts = (m.boss ? 1000 : Math.round(m.r * 25)) * Math.ceil(level / 3);
+  score += pts;
+  popup(m.x, 1, m.z, '+' + pts, m.boss ? '#ff7a3d' : '#ffb38a');
+  sparks(m.x, m.y, m.z, m.hot || m.boss ? [1, 0.5, 0.15] : [1, 0.75, 0.45], m.boss ? 160 : 26, m.boss ? 16 : 9);
+  sparks(m.x, m.y, m.z, [0.5, 0.45, 0.55], m.boss ? 60 : 12, 4, 1.2);
+  for (let i = 0; i < (m.boss ? 30 : 5); i++) {
+    const a = rand(0, 6.28), v = rand(3, 9);
+    debris.push({ x: m.x, y: m.y, z: m.z, vx: Math.cos(a) * v, vy: rand(-2, 4), vz: Math.sin(a) * v + m.vz * 0.5, rx: rand(0, 6), ry: rand(0, 6), sr: rand(-6, 6),
+      s: m.r * rand(0.15, 0.3), life: rand(0.6, 1.1), model: m.model });
+  }
+  SFX.boom(); shake = Math.max(shake, m.boss ? 1.6 : 0.25);
+  if (m.boss) {
+    bossAlive = false; say('bossDown', true);
+    powers.push({ x: m.x, z: m.z, k: lives >= 5 ? 'triple' : 'heart', ph: 0 });
+  } else if (Math.random() < 0.1) say('kill');
+  if (m.r > 0.95) {
+    m.kids = [-1, 1].map(s => {
+      const k = makeMeteor(m.x + s * m.r * 0.5, m.z, m.r * (m.boss ? 0.5 : 0.55), s * 4.5, Math.max(m.vz, 8) * 0.9, { hot: m.hot });
+      k.hp = k.maxhp = m.boss ? 2 : 1;
+      return k;
+    });
+  }
+}
+
+function hitPlayer(m) {
+  if (shield > 0) {
+    shield = 0; inv = 1;
+    if (!m.boss) killMeteor(m);
+    SFX.shield(); say('shieldBreak', true);
+    sparks(P.x, 0, P.z, PCOL.shield, 40, 10);
+    return;
+  }
+  if (!m.boss) m.dead = true;
+  lives--; inv = 1.6; shake = 1.1; flashA = 0.9; combo = 0; triple = 0;
+  sparks(P.x, 0, P.z, [1, 0.45, 0.2], 40, 10); SFX.hit(); say('hit', true);
+  if (lives <= 0) gameOver();
+}
+
+function gameOver() {
+  P.visible = false; bubble = null;
+  sparks(P.x, 0, P.z, [0.4, 0.9, 1.0], 120, 14); sparks(P.x, 0, P.z, [1, 0.5, 0.2], 120, 10);
+  shake = 2;
+  state = 'over'; overT = 1.2;
+  const final = Math.floor(score), isNew = final > best;
+  if (isNew) { best = final; saveBest(); }
+  $('deathLine').textContent = pick(DEATH);
+  $('finalScore').textContent = final.toLocaleString('en');
+  $('finalLvl').textContent = 'You reached level ' + level + ' · ' + zoneName();
+  $('recLine').innerHTML = isNew ? '<div class="new">NEW HIGH SCORE!</div>' : '<div class="rec">BEST: ' + best.toLocaleString('en') + '</div>';
+  $('menuRec').textContent = 'BEST: ' + best.toLocaleString('en');
+  setTimeout(() => { $('over').classList.remove('hidden'); $('hud').style.display = 'none'; }, 1000);
+  setTimeout(SFX.sad, 400);
+}
+
+function applyPower(p) {
+  SFX.power(); sparks(p.x, 0, p.z, PCOL[p.k], 40, 9); say('power');
+  if (p.k === 'shield') { shield = 8; popup(p.x, 1, p.z, 'SHIELD', PCSS.shield); }
+  else if (p.k === 'triple') { triple = 7; popup(p.x, 1, p.z, 'TRIPLE SHOT', PCSS.triple); }
+  else { lives = Math.min(lives + 1, 5); popup(p.x, 1, p.z, '+1 LIFE', PCSS.heart); }
+}
+function sparks(x, y, z, c, n, sp, size = 0.45) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, 6.28), e = rand(-1, 1), v = rand(0.3, 1) * sp, l = rand(0.35, 0.9);
+    parts.push({ x, y, z, vx: Math.cos(a) * v * Math.sqrt(1 - e * e), vy: e * v * 0.7, vz: Math.sin(a) * v * Math.sqrt(1 - e * e),
+      life: l, max: l, size: size * rand(0.6, 1.4), c, drag: 0.93 });
+  }
+}
+function popup(x, y, z, text, col) {
+  const s = toScreen(x, y, z), el = document.createElement('div');
+  el.className = 'pop'; el.textContent = text; el.style.color = col; el.style.left = s.x + 'px'; el.style.top = s.y + 'px';
+  $('world').appendChild(el); setTimeout(() => el.remove(), 1000);
+}
+
+// ---------------- Render ----------------
+function drawModel(model, m, tint = [1, 1, 1], flash = 0, fog = 1, emis = 1) {
+  gl.uniformMatrix4fv(meshProg.u('uM'), false, m);
+  gl.uniform3fv(meshProg.u('uTint'), tint);
+  gl.uniform1f(meshProg.u('uFlash'), flash); gl.uniform1f(meshProg.u('uFog'), fog); gl.uniform1f(meshProg.u('uEmis'), emis);
+  gl.bindVertexArray(model.vao); gl.drawArrays(gl.TRIANGLES, 0, model.count);
+}
+
+function render() {
+  setupCamera(shake * 0.35);
+  gl.viewport(0, 0, cv.width, cv.height);
+  gl.clearColor(0.02, 0.02, 0.06, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  // Fondo
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+  gl.useProgram(bgProg.p);
+  gl.uniform2f(bgProg.u('uRes'), cv.width, cv.height); gl.uniform1f(bgProg.u('uT'), T);
+  gl.bindVertexArray(bgVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // Planeta lejano
+  gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
+  gl.useProgram(meshProg.p);
+  gl.uniformMatrix4fv(meshProg.u('uVP'), false, VP); gl.uniform3fv(meshProg.u('uCam'), camEye);
+
+  // Grilla del piso (aditiva)
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false);
+  gl.useProgram(lineProg.p);
+  gl.uniformMatrix4fv(lineProg.u('uVP'), false, VP); gl.uniform3fv(lineProg.u('uCam'), camEye); gl.uniform1f(lineProg.u('uOff'), gridOff); gl.uniform1f(lineProg.u('uK'), camK);
+  gl.bindVertexArray(MODELS.grid.vao); gl.drawArrays(gl.LINES, 0, MODELS.grid.count);
+  gl.disable(gl.BLEND); gl.depthMask(true);
+
+  // Objetos sólidos
+  gl.useProgram(meshProg.p);
+  sprCount = 0;
+  for (const m of meteors) {
+    const mat = M4.trs(m.x, m.y, m.z, m.rx, m.ry, 0, m.r);
+    drawModel(m.model, mat, [1, 1, 1], m.flash > 0 ? 0.85 : 0);
+    if (m.boss) {
+      drawModel(MODELS.bossFace, M4.trs(m.x, m.y, m.z, -0.25, 0, Math.sin(T * 3) * 0.05, m.r / 2.6), [1, 1, 1], m.flash > 0 ? 0.6 : 0);
+      for (const s of [-1, 1]) spr(m.x + s * 0.95 * m.r / 2.6, m.y + 0.6, m.z + 2.9, 1.6, 1, 0.15, 0.05, 0.9);
+      spr(m.x, m.y, m.z, m.r * 4.5, 1, 0.25, 0.08, 0.35);
+    } else if (m.hot) spr(m.x, m.y, m.z, m.r * 3.2, 1, 0.4, 0.1, 0.35);
+  }
+  for (const d of debris) drawModel(d.model, M4.trs(d.x, d.y, d.z, d.rx, d.ry, 0, d.s * Math.min(1, d.life * 2)));
+  for (const s of stars) {
+    const bob = Math.sin(T * 3 + s.ph) * 0.15;
+    drawModel(MODELS.star, M4.trs(s.x, 0.2 + bob, s.z, -0.35, T * 2.2 + s.ph, 0, 0.6));
+    spr(s.x, 0.2 + bob, s.z, 3.2, 1, 0.75, 0.2, 0.75);
+  }
+  for (const p of powers) {
+    const c = PCOL[p.k], pulse = 1 + Math.sin(T * 6) * 0.08;
+    drawModel(MODELS.power, M4.trs(p.x, 0.3, p.z, T * 1.3 + p.ph, T * 2, 0.4, 0.75 * pulse), c);
+    spr(p.x, 0.3, p.z, 4, c[0], c[1], c[2], 0.7);
+  }
+  for (const b of bullets) {
+    drawModel(MODELS.bullet, M4.trs(b.x, 0, b.z, 0, -Math.atan2(b.vx, -b.vz), 0, 1.4), triple > 0 ? [0.85, 0.6, 1] : [1, 1, 1]);
+    const c = triple > 0 ? [0.8, 0.5, 1] : [1, 0.85, 0.4];
+    spr(b.x, 0, b.z, 1.6, c[0], c[1], c[2], 0.8);
+  }
+  // Nave
+  const showShip = state === 'menu' || (state === 'play' && P.visible && (inv <= 0 || Math.floor(T * 14) % 2 === 0));
+  if (showShip) {
+    let mat, sx = P.x, sz = P.z;
+    if (state === 'menu') { sx = 0; sz = 1.5; mat = M4.trs(0, 1.2 + Math.sin(T * 1.5) * 0.25, 1.5, 0.15 + Math.sin(T) * 0.05, T * 0.5, Math.sin(T * 0.8) * 0.2, 1.1); }
+    else mat = M4.trs(P.x, Math.sin(T * 3) * 0.06, P.z, 0.08, 0, P.bank, 1);
+    drawModel(hasPack ? MODELS.goldShip : MODELS.ship, mat);
+    if (state === 'play') {
+      spr(sx, 0, sz + 1.2, 1.8 + Math.random() * 0.4, 0.3, 0.8, 1, 0.9);
+      if (shield > 0 && (shield > 2 || Math.floor(T * 8) % 2 === 0)) {
+        for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2 + T; spr(sx + Math.cos(a) * 1.9, 0, sz + Math.sin(a) * 1.9, 0.7, 0.42, 0.66, 1, 0.8); }
+        spr(sx, 0, sz, 6, 0.2, 0.35, 0.8, 0.35);
+      }
+    }
+  }
+
+  // Partículas y polvo espacial
+  for (const p of parts) { const k = p.life / p.max; spr(p.x, p.y, p.z, p.size * (0.4 + 0.6 * k), p.c[0], p.c[1], p.c[2], k); }
+  for (const d of dust) spr(d.x, d.y, d.z, d.s * 2.5, 0.75, 0.8, 1, 0.55);
+
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false);
+  gl.useProgram(spriteProg.p);
+  gl.uniformMatrix4fv(spriteProg.u('uVP'), false, VP); gl.uniform1f(spriteProg.u('uScale'), pxScale);
+  gl.bindVertexArray(sprVao); gl.bindBuffer(gl.ARRAY_BUFFER, sprBuf);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, sprData, 0, sprCount * 8);
+  gl.drawArrays(gl.POINTS, 0, sprCount);
+  gl.depthMask(true); gl.disable(gl.BLEND);
+}
+
+// ---------------- HUD (DOM) ----------------
+const hudCache = {};
+function setHTML(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).innerHTML = v; } }
+const SHIP_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2 L15 12 L21 18 L15 17 L12 21 L9 17 L3 18 L9 12 Z" fill="#5ee6ff"/><circle cx="12" cy="10" r="2" fill="#e8fbff"/></svg>';
+function hud() {
+  if (state === 'play') {
+    setHTML('score', Math.floor(score).toLocaleString('en'));
+    setHTML('lvl', 'Level ' + level + ' · ' + zoneName());
+    setHTML('combo', combo > 1 ? 'COMBO ×' + combo : '');
+    setHTML('lives', SHIP_SVG.repeat(Math.max(0, lives)));
+    let bars = '';
+    if (shield > 0) bars += `<div class="bar" style="color:${PCSS.shield}">SHIELD<i><b style="width:${shield / 8 * 100}%;background:${PCSS.shield}"></b></i></div>`;
+    if (triple > 0) bars += `<div class="bar" style="color:${PCSS.triple}">TRIPLE<i><b style="width:${triple / 7 * 100}%;background:${PCSS.triple}"></b></i></div>`;
+    setHTML('bars', bars);
+    $('banner').style.opacity = banner > 0 ? Math.min(1, banner) : 0;
+  }
+  const bub = $('bubble');
+  if (state === 'play' && bubble && P.visible) {
+    const s = toScreen(P.x, 1.6, P.z - 0.6);
+    bub.style.left = clamp(s.x, 90, cssW - 90) + 'px'; bub.style.top = s.y + 'px'; bub.style.opacity = 1;
+  } else bub.style.opacity = 0;
+  const boss = meteors.find(m => m.boss && !m.dead), bel = $('boss');
+  if (state === 'play' && boss) {
+    const s = toScreen(boss.x, boss.r + 1.2, boss.z);
+    bel.style.display = 'block'; bel.style.left = s.x + 'px'; bel.style.top = s.y + 'px';
+    $('bossHp').style.width = (boss.hp / boss.maxhp * 100) + '%';
+  } else bel.style.display = 'none';
+  $('flash').style.opacity = flashA; $('flash').style.display = flashA > 0.01 ? 'block' : 'none';
+}
+
+// ---------------- Loop ----------------
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!paused) update(dt);
+  render(); hud();
+  requestAnimationFrame(loop);
+}
+if (location.hash === '#wallpaper') {          // modo fondo de pantalla (sin interfaz)
+  document.querySelectorAll('.screen,.ui,.mute').forEach(e => e.style.display = 'none');
+  state = 'play'; level = 4; P = { x: 0, z: 3, vx: 0, bank: -0.2, visible: true }; inv = 0; triple = 0;
+  for (let i = 0; i < 26; i++) meteors.push(makeMeteor(rand(-14, 14), rand(-60, -4), rand(0.6, 1.6), 0, 0));
+  meteors.push(makeMeteor(-1, -26, 2.6, 0, 0, { boss: true })); meteors[meteors.length - 1].vz = 0;
+  for (let i = 0; i < 8; i++) stars.push({ x: rand(-10, 10), z: rand(-40, 0), ph: rand(0, 6) });
+  powers.push({ x: 4, z: -6, k: 'shield', ph: 0 }, { x: -5, z: -12, k: 'triple', ph: 1 });
+  for (let i = 0; i < 6; i++) bullets.push({ x: 0, z: -1 - i * 3.5, vx: 0, vz: 0 });
+  paused = true; for (let i = 0; i < 40; i++) { T += 0.05; for (const s of [-1, 1]) parts.push({ x: 0, y: 0, z: 3 + 1.25 + i * 0.12, vx: 0, vy: 0, vz: 0, life: 0.28 - i * 0.006, max: 0.28, size: 0.55, c: [0.3, 0.8, 1.0], drag: 1 }); }
+  parts = parts.filter(p => p.life > 0);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -12,6 +12,24 @@
   },
   "games": [
     {
+      "id": "starfall",
+      "title": "STARFALL 3D",
+      "genre": "Shooter",
+      "price": 0,
+      "cover": "games/STARFALL/cover.png",
+      "background": "games/STARFALL/background.jpg",
+      "developer": { "name": "LTK Games", "url": "https://www.tiktok.com/@ltkgamesdev" },
+      "released": "2026-11-03",
+      "description": "Una nave, un piloto y demasiadas rocas. Un shooter arcade 3D sin fin: esquivá y destruí meteoritos, juntá estrellas para encadenar combos de hasta ×5, agarrá escudos, disparo triple y vidas extra, y sobreviví a King Boulder, el jefe que aparece cada 3 niveles. El juego nunca termina y cada nivel es más rápido. Tu récord queda guardado en el navegador.",
+      "requirements": {
+        "Plataforma": "Navegador moderno (Chrome, Edge, Firefox)",
+        "Controles": "Teclado (flechas/WASD, Espacio para disparar), ratón o táctil"
+      },
+      "play": {
+        "url": "games/STARFALL/index.html"
+      }
+    },
+    {
       "id": "eldoria-the-last-kingdom",
       "title": "Eldoria: The Last Kingdom",
       "genre": "Strategy",
