@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>SparkVault</title>
+  <script>
+    // GitHub Pages serves this for any missing address. A game link opens the game inside the app.
+    var m = location.pathname.match(/\/juego\/([a-z0-9-]+)/);
+    location.replace("https://slombodev.github.io/sparkvault/" + (m ? '#/game/' + m[1] : ''));
+  </script>
+</head>
+<body style="background:#07090f;color:#fff;font-family:system-ui,sans-serif">
+  <p>Esta página no existe. <a href="https://slombodev.github.io/sparkvault/" style="color:#9fd0ff">Ir a SparkVault</a></p>
+</body>
+</html>

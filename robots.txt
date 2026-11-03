@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://slombodev.github.io/sparkvault/sitemap.xml
