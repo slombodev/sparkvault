@@ -545,6 +545,31 @@ body.no-games .home-top { display: none; }
 .v-count { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 50%; translate: -50% 0; margin: 0; font-size: 14px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
 
 /* ---------- Toast ---------- */
+/* ---------- Contact form ---------- */
+.contact {
+  width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 28px;
+  border-radius: var(--r-lg); background: rgba(14, 17, 26, .94); color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .5); overflow: auto;
+}
+.contact[open] { animation: viewer-in .25s var(--ease-out); }
+.contact::backdrop { background: rgba(4, 6, 10, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.c-close { position: absolute; top: 16px; right: 16px; }
+.c-title { margin: 0 52px 6px 0; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.c-title:focus { outline: none; }
+.c-lead { margin: 0 0 20px; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.c-field { display: grid; gap: 6px; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.c-field input, .c-field textarea {
+  width: 100%; padding: 12px 14px; border-radius: var(--r-sm);
+  border: 1px solid var(--glass-edge); background: rgba(255, 255, 255, .06);
+  font: inherit; font-size: 16px; font-weight: 400; color: var(--text); outline: none;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.c-field textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+.c-field input::placeholder, .c-field textarea::placeholder { color: var(--text-3); }
+.c-field input:focus, .c-field textarea:focus { border-color: rgba(255, 255, 255, .32); background: rgba(255, 255, 255, .09); }
+.c-error { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: #ff9a9a; }
+.contact .btn { width: 100%; margin-top: 4px; }
+
 .toast {
   position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 60;
   max-width: min(560px, calc(100vw - 32px)); padding: 14px 20px; border-radius: 999px;
@@ -616,6 +641,7 @@ body.no-games .home-top { display: none; }
   .d-body { transform: none; transition: opacity .2s ease; }
   .card:hover, .card:hover .card-img { transform: none; }
   .toast { transition: opacity .2s ease; }
+  .viewer[open], .contact[open] { animation-name: fade-only; }
 }
 @keyframes fade-only { from { opacity: 0; } }
 

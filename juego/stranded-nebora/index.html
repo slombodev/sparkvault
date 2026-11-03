@@ -216,6 +216,34 @@
     <p class="v-count" id="viewer-count"></p>
   </dialog>
 
+  <dialog class="contact glass" id="contact" aria-labelledby="contact-title">
+    <button class="round-btn c-close" id="contact-close" type="button" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <form id="contact-form">
+      <h2 class="c-title" id="contact-title">Escribinos</h2>
+      <p class="c-lead">¿Querés publicar tu juego o tenés una consulta? Te respondemos por email.</p>
+      <label class="c-field">Nombre
+        <input name="name" autocomplete="name" maxlength="100" autofocus>
+      </label>
+      <label class="c-field">Tu email
+        <input name="email" type="email" autocomplete="email" required maxlength="200">
+      </label>
+      <label class="c-field">Mensaje
+        <textarea name="message" rows="5" required maxlength="5000" placeholder="Contanos de tu juego: nombre, género y un link si ya lo tenés."></textarea>
+      </label>
+      <!-- Honeypot: people never see it, spam bots fill it and FormSubmit drops the message. -->
+      <input class="sr-only" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="c-error" id="contact-error" role="alert" hidden></p>
+      <button class="btn btn-light" id="contact-send" type="submit">Enviar mensaje</button>
+    </form>
+    <div class="c-done" id="contact-done" hidden>
+      <h2 class="c-title" tabindex="-1">¡Mensaje enviado!</h2>
+      <p class="c-lead" id="contact-done-text"></p>
+      <button class="btn btn-glass" id="contact-ok" type="button">Listo</button>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="sr-only" id="announcer" aria-live="polite"></div>
 

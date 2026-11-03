@@ -491,14 +491,15 @@ const ads = (() => {
 
   // Shown in the hero slot while no ad is configured, so the space never looks empty.
   function housePromo() {
-    const subject = encodeURIComponent('Quiero publicar mi juego en SparkVault');
+    const write = el('button', { type: 'button', className: 'btn btn-light btn-sm', textContent: 'Escribinos' });
+    write.addEventListener('click', () => contact.open('Quiero publicar mi juego en SparkVault'));
     return [
       el('span', { className: 'ad-icon', innerHTML: iconSvg('all') }),
       el('div', { className: 'ad-body' }, [
         el('strong', { className: 'ad-title', textContent: '¿Hacés juegos?' }),
         el('span', { className: 'ad-text', textContent: 'Publicá el tuyo en SparkVault. Es gratis.' }),
       ]),
-      el('a', { className: 'btn btn-light btn-sm', href: `mailto:${CONTACT_EMAIL}?subject=${subject}`, textContent: 'Escribinos' }),
+      write,
     ];
   }
 
@@ -1295,12 +1296,75 @@ const viewer = (() => {
   };
 })();
 
+/* ============================== Contact form ============================== */
+
+// GitHub Pages can't send mail, so FormSubmit relays the message to CONTACT_EMAIL (no account needed;
+// the very first message asks that inbox to activate the form once).
+const contact = (() => {
+  const dlg = $('contact');
+  const form = $('contact-form');
+  const send = $('contact-send');
+  const error = $('contact-error');
+  const done = $('contact-done');
+  let subject = '';
+
+  function showError(text) {
+    error.textContent = text;
+    error.hidden = false;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    error.hidden = true;
+    send.disabled = true;
+    send.textContent = 'Enviando…';
+    try {
+      const res = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ ...data, _subject: `SparkVault: ${subject}`, _replyto: data.email, _template: 'table' }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || String(body.success) !== 'true') throw new Error(body.message || `HTTP ${res.status}`);
+      $('contact-done-text').textContent = `Te respondemos a ${data.email} lo antes posible.`;
+      form.hidden = true;
+      done.hidden = false;
+      done.querySelector('.c-title').focus();
+      sfx.play('cat');
+    } catch (err) {
+      console.warn('[SparkV] contact form failed:', err);
+      showError(`No se pudo enviar el mensaje. Probá de nuevo en un rato o escribinos directo a ${CONTACT_EMAIL}.`);
+    } finally {
+      send.disabled = false;
+      send.textContent = 'Enviar mensaje';
+    }
+  });
+
+  $('contact-close').addEventListener('click', () => dlg.close());
+  $('contact-ok').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('close', () => {
+    sfx.play('back');
+    // A sent form starts fresh next time; an unsent draft is kept.
+    if (!done.hidden) { form.reset(); form.hidden = false; done.hidden = true; }
+  });
+
+  return {
+    open(topic) {
+      subject = topic;
+      error.hidden = true;
+      dlg.showModal();
+      sfx.play('open');
+    },
+  };
+})();
+
 /* ============================== Input ============================== */
 
 function bindInput(search) {
   document.addEventListener('keydown', (e) => {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
-    if ($('viewer').open) return; // the dialog handles its own keys
+    if (document.querySelector('dialog[open]')) return; // open dialogs handle their own keys
     const typing = e.target.closest?.('input, textarea, [contenteditable="true"]');
     if (state.detail) {
       if (e.key === 'Escape' || (e.key === 'Backspace' && !typing)) {
